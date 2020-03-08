@@ -18,7 +18,7 @@ async def echo_server(reader, writer, drone):
             marker = 1
 
             try:
-                data = await asyncio.wait_for(reader.read(100), timeout=3)
+                data = await asyncio.wait_for(reader.read(100), timeout=10)
                 if not data: # client has disconnected
                     print("connection closed by client: closing connection with client")
                     break
@@ -76,6 +76,14 @@ async def echo_server(reader, writer, drone):
                 print("-- Killing")
                 await drone.action.kill()
 
+            elif data_in == "is_armed":
+                async for is_armed in drone.telemetry.armed():
+                    print("Is_armed:", is_armed)
+                    data_out = str(is_armed) + '\n'
+                    writer.write(data_out.encode())
+                    await writer.drain()
+                    break
+
             else:
                 print("error: data requested not supported, closing connection")
                 output_string = '|' + data_in + '|'
@@ -85,6 +93,7 @@ async def echo_server(reader, writer, drone):
 async def main(host, port):
     drone = System()
     await drone.connect(system_address="udp://:14555")
+    # await drone.connect(system_address="/dev/ttyUSB0")
     print("Waiting for drone to connect...")
     async for state in drone.core.connection_state():
         if state.is_connected:
