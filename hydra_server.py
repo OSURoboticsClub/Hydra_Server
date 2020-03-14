@@ -10,6 +10,7 @@
 import asyncio
 from mavsdk import System
 from concurrent.futures import TimeoutError
+from mavsdk import (Attitude, OffboardError)
 
 async def echo_server(reader, writer, drone):
 
@@ -69,8 +70,11 @@ async def echo_server(reader, writer, drone):
                 await drone.action.arm()
 
             elif data_in == "disarm":
-                print("-- Disarming")
-                await drone.action.disarm()
+                try:
+                    print("-- Disarming")
+                    await drone.action.disarm()
+                except:
+                    print("error disarming")
 
             elif data_in == "kill":
                 print("-- Killing")
@@ -78,8 +82,16 @@ async def echo_server(reader, writer, drone):
 
             elif data_in == "is_armed":
                 async for is_armed in drone.telemetry.armed():
-                    print("Is_armed:", is_armed)
+                    print("Is_armed requested:", is_armed)
                     data_out = str(is_armed) + '\n'
+                    writer.write(data_out.encode())
+                    await writer.drain()
+                    break
+
+            elif data_in == "flight_mode":
+                async for flight_mode in drone.telemetry.flight_mode():
+                    print("flight mode requested:", flight_mode)
+                    data_out = str(flight_mode) + '\n'
                     writer.write(data_out.encode())
                     await writer.drain()
                     break
@@ -105,6 +117,8 @@ async def main(host, port):
         if health.is_global_position_ok:
             print("Global position estimate ok")
             break
+    print("-- Setting initial setpoint")
+    await drone.offboard.set_attitude(Attitude(0.0, 0.0, 0.0, 0.0))
 
     print("Ready to accept incoming connections")
     server = await asyncio.start_server(lambda r, w: echo_server(r, w, drone), host, port)
