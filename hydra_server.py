@@ -96,6 +96,18 @@ async def echo_server(reader, writer, drone):
                     await writer.drain()
                     break
 
+            elif data_in == "takeoff":
+                print("-- Taking off")
+                await drone.action.takeoff()
+
+            elif data_in == "land":
+                print("-- Landing")
+                await drone.action.land()
+
+            elif data_in == "return":
+                print("-- Returning home")
+                await drone.action.return_to_launch()
+
             else:
                 print("error: data requested not supported, closing connection")
                 output_string = '|' + data_in + '|'
@@ -119,6 +131,10 @@ async def main(host, port):
             break
     print("-- Setting initial setpoint")
     await drone.offboard.set_attitude(Attitude(0.0, 0.0, 0.0, 0.0))
+
+    print("-- Setting takeoff altitude to 5m")
+    await drone.action.set_takeoff_altitude(5)
+    print (await drone.action.get_takeoff_altitude())
 
     print("Ready to accept incoming connections")
     server = await asyncio.start_server(lambda r, w: echo_server(r, w, drone), host, port)
