@@ -6,6 +6,7 @@
 * Description: Multi-threaded server that accepts incoming connections to send
     telemetry data to GUI, CP, and PP programs. Receives telemetry data from
     ttyUSB0. To run it provide the port number as a command line parameter
+
 """
 import asyncio
 from mavsdk import System
